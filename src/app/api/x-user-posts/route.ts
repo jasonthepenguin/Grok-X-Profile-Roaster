@@ -1,4 +1,24 @@
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(1, "1 m"), // 1 requests per minute
+});
+
 export async function GET(req: Request) {
+  // Rate limit by IP
+  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const { success } = await ratelimit.limit(ip);
+  if (!success) {
+    return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
   const username = searchParams.get('username');
   const BEARER_TOKEN = process.env.BEARER_TOKEN;

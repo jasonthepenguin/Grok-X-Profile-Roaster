@@ -17,6 +17,8 @@ export default function Home() {
       const data = await res.json();
       if (res.ok) {
         setPosts(data.posts);
+      } else if (res.status === 429) {
+        setError("Whoa! Too many requests. Did you just try and CogSec us?");
       } else {
         setError(data.error || "Unknown error");
       }
