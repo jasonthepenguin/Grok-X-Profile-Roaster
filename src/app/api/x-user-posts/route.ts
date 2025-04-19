@@ -23,8 +23,11 @@ export async function GET(req: Request) {
   const username = searchParams.get('username');
   const BEARER_TOKEN = process.env.BEARER_TOKEN;
 
-  if (!username) {
-    return new Response(JSON.stringify({ error: 'Username is required' }), { status: 400 });
+  // X usernames: 1-15 chars, alphanumeric or underscore, no spaces
+  const isValidUsername = (name: string) => /^[A-Za-z0-9_]{1,15}$/.test(name);
+
+  if (!username || !isValidUsername(username.trim())) {
+    return new Response(JSON.stringify({ error: 'Invalid username. Usernames must be 1-15 characters, letters, numbers, or underscores.' }), { status: 400 });
   }
 
   try {

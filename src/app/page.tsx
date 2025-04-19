@@ -7,11 +7,20 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const validateUsername = (name: string) => {
+    // X usernames: 1-15 chars, alphanumeric or underscore, no spaces
+    return /^[A-Za-z0-9_]{1,15}$/.test(name);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
     setPosts([]);
+    if (!validateUsername(username.trim())) {
+      setError("Invalid username. Usernames must be 1-15 characters, letters, numbers, or underscores.");
+      return;
+    }
+    setLoading(true);
     try {
       const res = await fetch(`/api/x-user-posts?username=${username}`);
       const data = await res.json();
@@ -63,7 +72,7 @@ export default function Home() {
             type="submit"
             className="p-2 bg-green-700 hover:bg-green-600 text-black font-bold rounded shadow font-mono border border-green-400 transition"
           >
-            Get Roasted
+            Get CogSecced
           </button>
         </form>
         {loading && <p className="text-green-400 font-medium animate-pulse">Loading...</p>}
