@@ -88,6 +88,43 @@ export default function Home() {
           ))}
         </ul>
       </div>
+      {/* Creator Reference */}
+      <footer className="mt-24 flex flex-col items-center">
+        <a
+          href="https://x.com/JasonBotterill3"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 bg-[#181f18] border border-green-700 rounded-full px-4 py-2 shadow-lg hover:shadow-[0_0_16px_#00ff00] transition"
+        >
+          <img
+            src="/jason.jpg"
+            alt="JB"
+            className="w-14 h-14 rounded-full border-2 border-green-400 object-cover"
+            style={{ imageRendering: "auto" }}
+          />
+          <span className="text-green-300 font-mono font-semibold text-lg flex items-center">
+            Created by <span className="text-green-400 ml-1">JB</span>
+            {/* Blue Check */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="ml-2 w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{ color: "#1DA1F2", filter: "drop-shadow(0 0 4px #1DA1F2)" }}
+              aria-label="Verified"
+            >
+              <circle cx="12" cy="12" r="10" fill="#1DA1F2" />
+              <path
+                d="M9.5 12.5l2 2 4-4"
+                stroke="#fff"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </a>
+      </footer>
     </div>
   );
 }
