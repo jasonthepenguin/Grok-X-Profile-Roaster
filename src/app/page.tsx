@@ -2,14 +2,9 @@
 import { useState } from "react";
 import Image from "next/image";
 
-type Post = {
-  id: string;
-  text: string;
-};
-
 export default function Home() {
   const [username, setUsername] = useState("");
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [analysis, setAnalysis] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,24 +16,25 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setPosts([]);
+    setAnalysis(null);
     if (!validateUsername(username.trim())) {
       setError("Invalid username. Usernames must be 1-15 characters, letters, numbers, or underscores.");
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/x-user-posts?username=${username}`);
+      const res = await fetch(`/api/x-user-posts?username=${username.trim()}`);
       const data = await res.json();
       if (res.ok) {
-        setPosts(data.posts);
+        setAnalysis(data.analysis);
       } else if (res.status === 429) {
-        setError("Whoa! Too many requests. Did you just try and CogSec us?");
+        setError(data.error || "Whoa! Too many requests. Try again in a minute.");
       } else {
-        setError(data.error || "Unknown error");
+        setError(data.error || `Error ${res.status}: Failed to get analysis`);
       }
-    } catch {
-      setError("Failed to fetch posts");
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Failed to fetch analysis. Check console for details.");
     }
     setLoading(false);
   };
@@ -70,31 +66,29 @@ export default function Home() {
         <form onSubmit={handleSubmit} className="mb-4 flex flex-col sm:flex-row gap-2 w-full">
           <input
             type="text"
-            placeholder="Enter X username"
+            placeholder="Enter X username (without @)"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={e => setUsername(e.target.value.replace(/^@/, ''))}
             className="border border-green-700 bg-black text-green-300 placeholder-green-600 p-2 rounded flex-1 shadow focus:outline-none focus:ring-2 focus:ring-green-400 font-mono"
             autoFocus
           />
           <button
             type="submit"
-            className="p-2 bg-green-700 hover:bg-green-600 text-black font-bold rounded shadow font-mono border border-green-400 transition"
+            disabled={loading}
+            className="p-2 bg-green-700 hover:bg-green-600 text-black font-bold rounded shadow font-mono border border-green-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Get CogSecced
+            {loading ? "Analyzing..." : "Get CogSecced"}
           </button>
         </form>
-        {loading && <p className="text-green-400 font-medium animate-pulse">Loading...</p>}
+        {loading && <p className="text-green-400 font-medium animate-pulse">Loading CogSec analysis...</p>}
         {error && <p className="text-red-400 font-medium">{error}</p>}
-        <ul className="w-full mt-4">
-          {posts.map(post => (
-            <li
-              key={post.id}
-              className="mb-2 border-b border-green-900 pb-2 bg-[#101510] rounded shadow-sm px-3 text-green-200 font-mono"
-            >
-              {post.text}
-            </li>
-          ))}
-        </ul>
+
+        {analysis && !loading && !error && (
+          <div className="w-full mt-4 p-4 bg-[#101510] rounded shadow-sm text-green-200 font-mono whitespace-pre-wrap border border-green-900">
+            <h3 className="text-lg font-semibold mb-2 text-green-400">CogSec Analysis for @{username}:</h3>
+            {analysis}
+          </div>
+        )}
       </div>
       {/* Creator Reference */}
       <footer className="mt-24 flex flex-col items-center">
