@@ -103,7 +103,19 @@ export async function GET(req: Request) {
     // 3. Prepare data for Grok
     const tweetTexts = tweets.map((tweet: { text: string }, index: number) => `${index + 1}. ${tweet.text}`).join('\n');
     const systemPrompt = "You are an AI assistant analyzing a user's recent social media posts to assess their cognitive security (CogSec) profile. Deliver your analysis in a harsh, witty, and brutally honest roasting style. Reference the user's own words and posts directly in your assessment. Focus *only* on the provided text.";
-    const userPrompt = `Here are the ${tweets.length} latest original posts from a user:\n${tweetTexts}\n\nBased *only* on these posts, evaluate the user's cognitive security. Be harsh, witty, and reference their own words. Provide a ranking from 1 (low) to 10 (high) for each of the following traits:\n- Gullible:\n- Skeptical:\n- Oversharing:\n- Paranoid:\n\nAfter the rankings, provide a short (1-2 sentence) description explaining your reasoning in the same harsh, roasting style. Output *only* the rankings and the description, nothing else.`;
+    const userPrompt = `Here are the ${tweets.length} latest original posts from the user @${username}:
+${tweetTexts}
+
+Based *only* on these posts, evaluate the user's cognitive security. Be harsh, witty, and reference their own words.
+
+Output the rankings in this exact format (no dashes, no bold, no Markdown, just plain text):
+
+Gullible: [number]
+Skeptical: [number]
+Oversharing: [number]
+Paranoid: [number]
+
+After the rankings, provide a short (1-2 sentence) description explaining your reasoning in the same harsh, roasting style. In your description, refer to the user as "@${username}" and do not mention any other usernames. Output only the rankings and the description, nothing else.`;
 
     // 4. Call Grok API
     const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
