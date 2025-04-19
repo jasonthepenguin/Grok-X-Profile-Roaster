@@ -125,6 +125,11 @@ export default function Home() {
           </span>
         </a>
       </footer>
+      {/* Data Disclaimer */}
+      <p className="mt-2 text-xs text-green-700 text-center max-w-xs">
+        We do not store your data. All requests are processed anonymously.<br />
+        Your posts will be analyzed using the Grok API from xAI.
+      </p>
     </div>
   );
 }
