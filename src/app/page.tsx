@@ -1,9 +1,15 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
+
+type Post = {
+  id: string;
+  text: string;
+};
 
 export default function Home() {
   const [username, setUsername] = useState("");
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -51,9 +57,11 @@ export default function Home() {
         className="w-36 h-36 rounded-full border-4 border-green-400 mb-6 flex items-center justify-center bg-white shadow-[0_0_16px_#00ff00]"
         style={{ display: "inline-flex" }}
       >
-        <img
+        <Image
           src="/wojak.png"
           alt="Wojak"
+          width={128}
+          height={128}
           className="w-32 h-32 rounded-full object-cover"
           style={{ imageRendering: "pixelated" }}
         />
@@ -96,9 +104,11 @@ export default function Home() {
           rel="noopener noreferrer"
           className="flex items-center gap-3 bg-[#181f18] border border-green-700 rounded-full px-4 py-2 shadow-lg hover:shadow-[0_0_16px_#00ff00] transition"
         >
-          <img
+          <Image
             src="/jason.jpg"
             alt="JB"
+            width={56}
+            height={56}
             className="w-14 h-14 rounded-full border-2 border-green-400 object-cover"
             style={{ imageRendering: "auto" }}
           />

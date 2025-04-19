@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     const postsData = await postsRes.json();
 
     return new Response(JSON.stringify({ posts: postsData.data || [] }), { status: 200 });
-  } catch (error) {
+  } catch {
     return new Response(JSON.stringify({ error: 'Failed to fetch posts' }), { status: 500 });
   }
 }
