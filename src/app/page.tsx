@@ -128,7 +128,8 @@ export default function Home() {
       {/* Data Disclaimer */}
       <p className="mt-2 text-xs text-green-700 text-center max-w-xs">
         We do not store your data. All requests are processed anonymously.<br />
-        Your posts will be analyzed using the Grok API from xAI.
+        Your posts will be analyzed using the Grok API from xAI.<br />
+        <span className="italic">This site is for entertainment purposes only.</span>
       </p>
     </div>
   );
