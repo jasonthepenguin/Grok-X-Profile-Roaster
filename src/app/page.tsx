@@ -48,8 +48,8 @@ export default function Home() {
 
   // Helper to get quadrant label
   function getQuadrantLabel(x: number, y: number) {
-    let xLabel = x < 0 ? "paranoid" : "oversharing";
-    let yLabel = y < 0 ? "skeptical" : "gullible";
+    const xLabel = x < 0 ? "paranoid" : "oversharing";
+    const yLabel = y < 0 ? "skeptical" : "gullible";
     return `${yLabel} ${xLabel} retard`;
   }
 

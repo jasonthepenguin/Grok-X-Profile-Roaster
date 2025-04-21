@@ -142,36 +142,88 @@ Explanation: [1-2 sentence roast, referencing @${username} and their posts]
 
 Do not output anything else.`;
 
-    // 4. Call Grok API
-    const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
+    // 4. Call Grok API with retries
+    const maxRetries = 3;
+    let grokRes: Response | null = null;
+    let grokData: GrokResponse | null = null;
+    let lastError: any = null; // To store the last error encountered
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const currentGrokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
             'Authorization': `Bearer ${GROK_KEY}`,
             'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: "grok-3-beta",
+          },
+          body: JSON.stringify({
+            model: "grok-3-beta", // Consider trying "grok-1" on retry? Or keep simple for now.
             messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
             ]
-        }),
-    });
+          }),
+        });
 
-    if (!grokRes.ok) {
-        const errorText = await grokRes.text();
-        console.error("Grok API error:", grokRes.status, errorText);
-        return new Response(JSON.stringify({ error: 'Failed to get analysis from AI' }), { status: grokRes.status });
+        if (currentGrokRes.ok) {
+          grokRes = currentGrokRes; // Store the successful response
+          grokData = await currentGrokRes.json(); // Parse successful response
+          console.log(`Grok API call successful on attempt ${attempt}`);
+          break; // Exit loop on success
+        } else {
+          // Store error details from the response body if possible
+          const errorText = await currentGrokRes.text();
+          lastError = { status: currentGrokRes.status, text: errorText };
+          console.error(`Grok API error on attempt ${attempt}/${maxRetries}:`, currentGrokRes.status, errorText);
+
+          // Don't retry on client errors (4xx) except for rate limits (429) which we handle separately below
+          // Note: The current rate limit handling for Grok is *after* this loop, which might need adjustment
+          // if we want specific retry logic for 429 within the loop. For now, we just won't retry other 4xx.
+          if (currentGrokRes.status >= 400 && currentGrokRes.status !== 429 && currentGrokRes.status < 500) {
+             console.log(`Not retrying on client error ${currentGrokRes.status}`);
+             grokRes = currentGrokRes; // Store the failed response to be handled outside loop
+             break;
+          }
+
+          if (attempt < maxRetries) {
+            // Wait before retrying (e.g., 500ms delay)
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt)); // Simple exponential backoff
+            console.log(`Retrying Grok API call (attempt ${attempt + 1})...`);
+          } else {
+             grokRes = currentGrokRes; // Store the final failed response
+          }
+        }
+      } catch (error) {
+        lastError = error; // Store network or other fetch errors
+        console.error(`Error fetching Grok API on attempt ${attempt}/${maxRetries}:`, error);
+        if (attempt === maxRetries) {
+           // If the last attempt fails due to a network error, we need to return an error
+           return new Response(JSON.stringify({ error: 'Failed to connect to AI service after multiple attempts' }), { status: 503 }); // Service Unavailable
+        }
+         // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+        console.log(`Retrying Grok API call (attempt ${attempt + 1})...`);
+      }
     }
 
-    if (grokRes.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limited by Grok API" }), { status: 429 });
+    // Check if Grok call ultimately failed after retries
+    if (!grokData || !grokRes || !grokRes.ok) {
+        console.error("Grok API call failed after all retries. Last error:", lastError);
+        // Use the status from the last failed Response if available
+        const status = (lastError && typeof lastError === 'object' && 'status' in lastError) ? lastError.status : 500;
+        // Use the error text from the last failed Response if available
+        const errorDetail = (lastError && typeof lastError === 'object' && 'text' in lastError) ? `: ${lastError.text}` : '';
+        // Handle specific Grok rate limit error (if the loop exited due to 429 or if the last attempt was 429)
+        if (status === 429) {
+             return new Response(JSON.stringify({ error: "Rate limited by Grok API" }), { status: 429 });
+        }
+        return new Response(JSON.stringify({ error: `Failed to get analysis from AI after ${maxRetries} attempts${errorDetail}` }), { status });
     }
 
-    const grokData: GrokResponse = await grokRes.json();
+    // We already parsed grokData successfully within the loop if we reach here
     console.log("Grok API Response Data:", JSON.stringify(grokData, null, 2));
 
-    // 5. Extract and return Grok's analysis
+    // 5. Extract and return Grok's analysis (grokData is guaranteed non-null here)
     const content = grokData.choices?.[0]?.message?.content?.trim() || "";
     // Regex to extract x, y, and explanation
     const match = content.match(/x:\s*(-?\d+)\s*y:\s*(-?\d+)\s*Explanation:\s*([\s\S]+)/i);
