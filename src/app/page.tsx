@@ -1,12 +1,16 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 export default function Home() {
   const [username, setUsername] = useState("");
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [x, setX] = useState<number | null>(null);
+  const [y, setY] = useState<number | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   const validateUsername = (name: string) => {
     // X usernames: 1-15 chars, alphanumeric or underscore, no spaces
@@ -26,7 +30,10 @@ export default function Home() {
       const res = await fetch(`/api/x-user-posts?username=${username.trim()}`);
       const data = await res.json();
       if (res.ok) {
-        setAnalysis(data.analysis);
+        setAnalysis(data.explanation || data.analysis);
+        setX(data.x ?? null);
+        setY(data.y ?? null);
+        setProfileImageUrl(data.profile_image_url || null);
       } else if (res.status === 429) {
         setError(data.error || "Whoa! Too many requests. Try again in a minute.");
       } else {
@@ -38,6 +45,13 @@ export default function Home() {
     }
     setLoading(false);
   };
+
+  // Helper to get quadrant label
+  function getQuadrantLabel(x: number, y: number) {
+    const xLabel = x < 0 ? "paranoid" : "oversharing";
+    const yLabel = y < 0 ? "skeptical" : "gullible";
+    return `${yLabel} ${xLabel} retard`;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#111] font-mono">
@@ -54,12 +68,12 @@ export default function Home() {
         style={{ display: "inline-flex" }}
       >
         <Image
-          src="/wojak.png"
-          alt="Wojak"
+          src={profileImageUrl || "/wojak.png"}
+          alt="User or Wojak"
           width={128}
           height={128}
           className="w-32 h-32 rounded-full object-cover"
-          style={{ imageRendering: "pixelated" }}
+          style={{ imageRendering: profileImageUrl ? "auto" : "pixelated" }}
         />
       </div>
       <div className="bg-[#181f18] border border-green-700 rounded-lg shadow-lg p-6 w-full max-w-xl">
@@ -87,6 +101,99 @@ export default function Home() {
           <div className="w-full mt-4 p-4 bg-[#101510] rounded shadow-sm text-green-200 font-mono whitespace-pre-wrap border border-green-900">
             <h3 className="text-lg font-semibold mb-2 text-green-400">CogSec Analysis for @{username}:</h3>
             {analysis}
+            {/* Graph */}
+            {x !== null && y !== null && (
+              <div className="mt-6">
+                <h4 className="text-green-400 font-semibold mb-2">
+                  Your CogSec Map:
+                  <span className="ml-3 text-green-300 text-base font-mono">
+                    (x: {x}, y: {y})
+                  </span>
+                </h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart
+                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                    style={{ background: "#181f18", borderRadius: 12, boxShadow: "0 0 16px #0f0a" }}
+                  >
+                    <CartesianGrid stroke="#234d23" strokeDasharray="3 3" />
+                    <XAxis
+                      type="number"
+                      dataKey="x"
+                      name="Oversharing → Paranoid"
+                      domain={[-10, 10]}
+                      label={{
+                        value: "Paranoid → Oversharing",
+                        position: "insideBottom",
+                        offset: -5,
+                        fill: "#66ff66",
+                        fontSize: 13,
+                      }}
+                      tick={{ fill: "#66ff66", fontSize: 12 }}
+                      axisLine={{ stroke: "#234d23" }}
+                      tickLine={{ stroke: "#234d23" }}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="y"
+                      name="Gullible → Skeptical"
+                      domain={[-10, 10]}
+                      label={{
+                        value: "Skeptical → Gullible",
+                        angle: -90,
+                        position: "left",
+                        offset: -10,
+                        fill: "#66ff66",
+                        fontSize: 13,
+                        style: { textAnchor: 'middle' }
+                      }}
+                      tick={{ fill: "#66ff66", fontSize: 12 }}
+                      axisLine={{ stroke: "#234d23" }}
+                      tickLine={{ stroke: "#234d23" }}
+                    />
+                    <Tooltip
+                      cursor={{ strokeDasharray: "3 3", stroke: "#66ff66" }}
+                      content={({ active, payload }) =>
+                        active && payload && payload.length ? (
+                          <div className="bg-[#181f18] text-green-200 p-2 rounded border border-green-700 shadow"
+                               style={{ boxShadow: "0 0 8px #00ff00aa" }}>
+                            <div>
+                              <b>@{username}</b>
+                            </div>
+                            <div>
+                              x: {payload[0].payload.x}, y: {payload[0].payload.y}
+                            </div>
+                          </div>
+                        ) : null
+                      }
+                    />
+                    {/* Center lines */}
+                    <ReferenceLine x={0} stroke="#66ff66" strokeDasharray="3 3" />
+                    <ReferenceLine y={0} stroke="#66ff66" strokeDasharray="3 3" />
+                    <Scatter
+                      name={`@${username}`}
+                      data={[{ x, y }]}
+                      fill="#00ffcc"
+                      shape="circle"
+                      style={{ filter: "drop-shadow(0 0 8px #00ffcc)" }}
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+                {/* Final result label */}
+                <div className="mt-8 text-left">
+                  <span className="text-lg font-bold text-green-400">
+                    Final result:{" "}
+                    <span
+                      className="text-green-300 font-bold text-xl"
+                      style={{
+                        textShadow: "0 0 1px #000, 0 0 2px #000"
+                      }}
+                    >
+                      {getQuadrantLabel(x, y)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
