@@ -146,7 +146,7 @@ Do not output anything else.`;
     const maxRetries = 3;
     let grokRes: Response | null = null;
     let grokData: GrokResponse | null = null;
-    let lastError: any = null; // To store the last error encountered
+    let lastError: unknown = null; // To store the last error encountered
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -209,11 +209,20 @@ Do not output anything else.`;
     // Check if Grok call ultimately failed after retries
     if (!grokData || !grokRes || !grokRes.ok) {
         console.error("Grok API call failed after all retries. Last error:", lastError);
-        // Use the status from the last failed Response if available
-        const status = (lastError && typeof lastError === 'object' && 'status' in lastError) ? lastError.status : 500;
-        // Use the error text from the last failed Response if available
-        const errorDetail = (lastError && typeof lastError === 'object' && 'text' in lastError) ? `: ${lastError.text}` : '';
-        // Handle specific Grok rate limit error (if the loop exited due to 429 or if the last attempt was 429)
+
+        // Determine status code from the last error, default to 500
+        let status = 500;
+        if (lastError && typeof lastError === 'object' && lastError !== null && 'status' in lastError && typeof lastError.status === 'number') {
+            status = lastError.status;
+        }
+
+        // Extract error detail text if available
+        let errorDetail = '';
+        if (lastError && typeof lastError === 'object' && lastError !== null && 'text' in lastError && typeof lastError.text === 'string') {
+            errorDetail = `: ${lastError.text}`;
+        }
+
+        // Handle specific Grok rate limit error
         if (status === 429) {
              return new Response(JSON.stringify({ error: "Rate limited by Grok API" }), { status: 429 });
         }
