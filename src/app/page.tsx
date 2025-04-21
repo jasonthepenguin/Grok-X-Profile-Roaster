@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 export default function Home() {
   const [username, setUsername] = useState("");
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [x, setX] = useState<number | null>(null);
+  const [y, setY] = useState<number | null>(null);
 
   const validateUsername = (name: string) => {
     // X usernames: 1-15 chars, alphanumeric or underscore, no spaces
@@ -26,7 +29,9 @@ export default function Home() {
       const res = await fetch(`/api/x-user-posts?username=${username.trim()}`);
       const data = await res.json();
       if (res.ok) {
-        setAnalysis(data.analysis);
+        setAnalysis(data.explanation || data.analysis);
+        setX(data.x ?? null);
+        setY(data.y ?? null);
       } else if (res.status === 429) {
         setError(data.error || "Whoa! Too many requests. Try again in a minute.");
       } else {
@@ -87,6 +92,78 @@ export default function Home() {
           <div className="w-full mt-4 p-4 bg-[#101510] rounded shadow-sm text-green-200 font-mono whitespace-pre-wrap border border-green-900">
             <h3 className="text-lg font-semibold mb-2 text-green-400">CogSec Analysis for @{username}:</h3>
             {analysis}
+            {/* Graph */}
+            {x !== null && y !== null && (
+              <div className="mt-6">
+                <h4 className="text-green-400 font-semibold mb-2">
+                  Your CogSec Map:
+                  <span className="ml-3 text-green-300 text-base font-mono">
+                    (x: {x}, y: {y})
+                  </span>
+                </h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart
+                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      type="number"
+                      dataKey="x"
+                      name="Oversharing → Paranoid"
+                      domain={[-10, 10]}
+                      label={{
+                        value: "Paranoid → Oversharing",
+                        position: "insideBottom",
+                        offset: -5,
+                        fill: "#00ff00",
+                        fontSize: 14,
+                      }}
+                      tick={{ fill: "#00ff00" }}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="y"
+                      name="Gullible → Skeptical"
+                      domain={[-10, 10]}
+                      label={{
+                        value: "Skeptical -> Gullible",
+                        angle: -90,
+                        position: "left",
+                        offset: -10,
+                        fill: "#00ff00",
+                        fontSize: 14,
+                        style: { textAnchor: 'middle' }
+                      }}
+                      tick={{ fill: "#00ff00" }}
+                    />
+                    <Tooltip
+                      cursor={{ strokeDasharray: "3 3" }}
+                      content={({ active, payload }) =>
+                        active && payload && payload.length ? (
+                          <div className="bg-[#222] text-green-200 p-2 rounded border border-green-700">
+                            <div>
+                              <b>@{username}</b>
+                            </div>
+                            <div>
+                              x: {payload[0].payload.x}, y: {payload[0].payload.y}
+                            </div>
+                          </div>
+                        ) : null
+                      }
+                    />
+                    {/* Center lines */}
+                    <ReferenceLine x={0} stroke="#00ff00" strokeDasharray="3 3" />
+                    <ReferenceLine y={0} stroke="#00ff00" strokeDasharray="3 3" />
+                    <Scatter
+                      name={`@${username}`}
+                      data={[{ x, y }]}
+                      fill="#00ff00"
+                      shape="circle"
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         )}
       </div>

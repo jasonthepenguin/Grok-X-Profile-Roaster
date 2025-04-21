@@ -56,48 +56,63 @@ export async function GET(req: Request) {
   }
 
   try {
-    // 1. Get user ID from username
-    const userRes = await fetch(`https://api.x.com/2/users/by/username/${username}`, {
-      headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
-    });
-    if (!userRes.ok) {
-      const errorData = await userRes.json().catch(() => ({})); // Try to get error details
-      const errorMessage = errorData?.title === 'Not Found Error' ? `X user @${username} not found` : 'Failed to fetch user data from X';
-      return new Response(JSON.stringify({ error: errorMessage }), { status: userRes.status });
-    }
-    const userData = await userRes.json();
-    const userId = userData.data?.id;
-    if (!userId) {
-       // This case might be redundant given the !userRes.ok check, but good for safety
-      return new Response(JSON.stringify({ error: `X user @${username} not found` }), { status: 404 });
-    }
+    let tweets: { text: string }[] = [];
+    let testMode = false;
 
-    if (userRes.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limited by X API" }), { status: 429 });
-    }
+    if (username.trim().toLowerCase() === "test123") {
+      // TEST MODE: Use fake posts
+      testMode = true;
+      tweets = [
+        { text: "Just finished reading a book on quantum computing. Mind blown!" },
+        { text: "Why does my coffee always taste better at 2am?" },
+        { text: "Trust nobody, not even your own shadow." },
+        { text: "Sharing my daily routine: wake up, overthink, sleep." },
+        { text: "Is it oversharing if I tweet about my dreams?" },
+      ];
+    } else {
+      // 1. Get user ID from username
+      const userRes = await fetch(`https://api.x.com/2/users/by/username/${username}`, {
+        headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
+      });
+      if (!userRes.ok) {
+        const errorData = await userRes.json().catch(() => ({})); // Try to get error details
+        const errorMessage = errorData?.title === 'Not Found Error' ? `X user @${username} not found` : 'Failed to fetch user data from X';
+        return new Response(JSON.stringify({ error: errorMessage }), { status: userRes.status });
+      }
+      const userData = await userRes.json();
+      const userId = userData.data?.id;
+      if (!userId) {
+         // This case might be redundant given the !userRes.ok check, but good for safety
+        return new Response(JSON.stringify({ error: `X user @${username} not found` }), { status: 404 });
+      }
 
-    // 2. Get latest 5 posts 
-    const timelineParams = new URLSearchParams({
-      max_results: "10",
-      "tweet.fields": "text"
-    });
-    const timelineRes = await fetch(`https://api.x.com/2/users/${userId}/tweets?${timelineParams.toString()}`, {
-      headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
-    });
-    if (!timelineRes.ok) {
-       const errorText = await timelineRes.text();
-      console.error("Error fetching tweets:", timelineRes.status, errorText);
-      return new Response(JSON.stringify({ error: 'Failed to fetch posts from X' }), { status: timelineRes.status });
-    }
-    const postsData = await timelineRes.json();
-    const tweets = postsData.data || [];
+      if (userRes.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limited by X API" }), { status: 429 });
+      }
 
-    if (tweets.length === 0) {
-        return new Response(JSON.stringify({ analysis: "No recent original posts found to analyze." }), { status: 200 });
-    }
+      // 2. Get latest 5 posts 
+      const timelineParams = new URLSearchParams({
+        max_results: "10",
+        "tweet.fields": "text"
+      });
+      const timelineRes = await fetch(`https://api.x.com/2/users/${userId}/tweets?${timelineParams.toString()}`, {
+        headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
+      });
+      if (!timelineRes.ok) {
+         const errorText = await timelineRes.text();
+        console.error("Error fetching tweets:", timelineRes.status, errorText);
+        return new Response(JSON.stringify({ error: 'Failed to fetch posts from X' }), { status: timelineRes.status });
+      }
+      const postsData = await timelineRes.json();
+      tweets = postsData.data || [];
 
-    if (timelineRes.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limited by X API" }), { status: 429 });
+      if (tweets.length === 0) {
+          return new Response(JSON.stringify({ analysis: "No recent original posts found to analyze." }), { status: 200 });
+      }
+
+      if (timelineRes.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limited by X API" }), { status: 429 });
+      }
     }
 
     // 3. Prepare data for Grok
@@ -108,14 +123,18 @@ ${tweetTexts}
 
 Based *only* on these posts, evaluate the user's cognitive security. Be harsh, witty, and reference their own words.
 
-Output the rankings in this exact format (no dashes, no bold, no Markdown, just plain text):
+Map the user onto a 2D plane with these axes:
+- Y axis: Gullible (+10) to Skeptical (-10)
+- X axis: Oversharing (+10) to Paranoid (-10)
 
-Gullible: [number]
-Skeptical: [number]
-Oversharing: [number]
-Paranoid: [number]
+Output ONLY in this exact format (no dashes, no bold, no Markdown, just plain text):
 
-After the rankings, provide a short (1-2 sentence) description explaining your reasoning in the same harsh, roasting style. In your description, refer to the user as "@${username}" and do not mention any other usernames. Output only the rankings and the description, nothing else.`;
+x: [number from -10 to 10]
+y: [number from -10 to 10]
+
+Explanation: [1-2 sentence roast, referencing @${username} and their posts]
+
+Do not output anything else.`;
 
     // 4. Call Grok API
     const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -147,9 +166,34 @@ After the rankings, provide a short (1-2 sentence) description explaining your r
     console.log("Grok API Response Data:", JSON.stringify(grokData, null, 2));
 
     // 5. Extract and return Grok's analysis
-    const analysis = grokData.choices?.[0]?.message?.content?.trim() || "Could not retrieve analysis.";
+    const content = grokData.choices?.[0]?.message?.content?.trim() || "";
+    // Regex to extract x, y, and explanation
+    const match = content.match(/x:\s*(-?\d+)\s*y:\s*(-?\d+)\s*Explanation:\s*([\s\S]+)/i);
 
-    return new Response(JSON.stringify({ analysis: analysis }), { status: 200 });
+    if (!match) {
+      console.error("Failed to parse Grok output:", content);
+      return new Response(JSON.stringify({ error: "Could not parse analysis from AI." }), { status: 500 });
+    }
+
+    const [, xStr, yStr, explanation] = match;
+    const x = Number(xStr);
+    const y = Number(yStr);
+
+    // Validate x and y are within -10 to 10
+    if (
+      Number.isNaN(x) || Number.isNaN(y) ||
+      x < -10 || x > 10 ||
+      y < -10 || y > 10
+    ) {
+      console.error("Parsed coordinates out of range:", { x, y });
+      return new Response(JSON.stringify({ error: "AI returned invalid coordinates." }), { status: 500 });
+    }
+
+    return new Response(JSON.stringify({
+      x,
+      y,
+      explanation: explanation.trim(),
+    }), { status: 200 });
 
   } catch (error) {
     console.error("API Route Error:", error);
