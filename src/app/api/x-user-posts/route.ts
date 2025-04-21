@@ -57,6 +57,7 @@ export async function GET(req: Request) {
 
   try {
     let tweets: { text: string }[] = [];
+    let profileImageUrl: string | null = null;
 
     if (username.trim().toLowerCase() === "test123") {
       // TEST MODE: Use fake posts
@@ -69,9 +70,12 @@ export async function GET(req: Request) {
       ];
     } else {
       // 1. Get user ID from username
-      const userRes = await fetch(`https://api.x.com/2/users/by/username/${username}`, {
-        headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
-      });
+      const userRes = await fetch(
+        `https://api.x.com/2/users/by/username/${username}?user.fields=profile_image_url`,
+        {
+          headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
+        }
+      );
       if (!userRes.ok) {
         const errorData = await userRes.json().catch(() => ({})); // Try to get error details
         const errorMessage = errorData?.title === 'Not Found Error' ? `X user @${username} not found` : 'Failed to fetch user data from X';
@@ -79,6 +83,10 @@ export async function GET(req: Request) {
       }
       const userData = await userRes.json();
       const userId = userData.data?.id;
+      profileImageUrl = userData.data?.profile_image_url;
+      if (profileImageUrl) {
+        profileImageUrl = profileImageUrl.replace(/_(normal|bigger|mini)\./, '_400x400.');
+      }
       if (!userId) {
          // This case might be redundant given the !userRes.ok check, but good for safety
         return new Response(JSON.stringify({ error: `X user @${username} not found` }), { status: 404 });
@@ -191,6 +199,7 @@ Do not output anything else.`;
       x,
       y,
       explanation: explanation.trim(),
+      profile_image_url: profileImageUrl || null,
     }), { status: 200 });
 
   } catch (error) {

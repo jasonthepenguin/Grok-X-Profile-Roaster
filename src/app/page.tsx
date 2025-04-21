@@ -10,6 +10,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [x, setX] = useState<number | null>(null);
   const [y, setY] = useState<number | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   const validateUsername = (name: string) => {
     // X usernames: 1-15 chars, alphanumeric or underscore, no spaces
@@ -32,6 +33,7 @@ export default function Home() {
         setAnalysis(data.explanation || data.analysis);
         setX(data.x ?? null);
         setY(data.y ?? null);
+        setProfileImageUrl(data.profile_image_url || null);
       } else if (res.status === 429) {
         setError(data.error || "Whoa! Too many requests. Try again in a minute.");
       } else {
@@ -66,12 +68,12 @@ export default function Home() {
         style={{ display: "inline-flex" }}
       >
         <Image
-          src="/wojak.png"
-          alt="Wojak"
+          src={profileImageUrl || "/wojak.png"}
+          alt="User or Wojak"
           width={128}
           height={128}
           className="w-32 h-32 rounded-full object-cover"
-          style={{ imageRendering: "pixelated" }}
+          style={{ imageRendering: profileImageUrl ? "auto" : "pixelated" }}
         />
       </div>
       <div className="bg-[#181f18] border border-green-700 rounded-lg shadow-lg p-6 w-full max-w-xl">
