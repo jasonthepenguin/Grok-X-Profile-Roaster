@@ -104,8 +104,9 @@ export default function Home() {
                 <ResponsiveContainer width="100%" height={300}>
                   <ScatterChart
                     margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                    style={{ background: "#181f18", borderRadius: 12, boxShadow: "0 0 16px #0f0a" }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid stroke="#234d23" strokeDasharray="3 3" />
                     <XAxis
                       type="number"
                       dataKey="x"
@@ -115,10 +116,12 @@ export default function Home() {
                         value: "Paranoid → Oversharing",
                         position: "insideBottom",
                         offset: -5,
-                        fill: "#00ff00",
-                        fontSize: 14,
+                        fill: "#66ff66",
+                        fontSize: 13,
                       }}
-                      tick={{ fill: "#00ff00" }}
+                      tick={{ fill: "#66ff66", fontSize: 12 }}
+                      axisLine={{ stroke: "#234d23" }}
+                      tickLine={{ stroke: "#234d23" }}
                     />
                     <YAxis
                       type="number"
@@ -126,21 +129,24 @@ export default function Home() {
                       name="Gullible → Skeptical"
                       domain={[-10, 10]}
                       label={{
-                        value: "Skeptical -> Gullible",
+                        value: "Skeptical → Gullible",
                         angle: -90,
                         position: "left",
                         offset: -10,
-                        fill: "#00ff00",
-                        fontSize: 14,
+                        fill: "#66ff66",
+                        fontSize: 13,
                         style: { textAnchor: 'middle' }
                       }}
-                      tick={{ fill: "#00ff00" }}
+                      tick={{ fill: "#66ff66", fontSize: 12 }}
+                      axisLine={{ stroke: "#234d23" }}
+                      tickLine={{ stroke: "#234d23" }}
                     />
                     <Tooltip
-                      cursor={{ strokeDasharray: "3 3" }}
+                      cursor={{ strokeDasharray: "3 3", stroke: "#66ff66" }}
                       content={({ active, payload }) =>
                         active && payload && payload.length ? (
-                          <div className="bg-[#222] text-green-200 p-2 rounded border border-green-700">
+                          <div className="bg-[#181f18] text-green-200 p-2 rounded border border-green-700 shadow"
+                               style={{ boxShadow: "0 0 8px #00ff00aa" }}>
                             <div>
                               <b>@{username}</b>
                             </div>
@@ -152,13 +158,14 @@ export default function Home() {
                       }
                     />
                     {/* Center lines */}
-                    <ReferenceLine x={0} stroke="#00ff00" strokeDasharray="3 3" />
-                    <ReferenceLine y={0} stroke="#00ff00" strokeDasharray="3 3" />
+                    <ReferenceLine x={0} stroke="#66ff66" strokeDasharray="3 3" />
+                    <ReferenceLine y={0} stroke="#66ff66" strokeDasharray="3 3" />
                     <Scatter
                       name={`@${username}`}
                       data={[{ x, y }]}
-                      fill="#00ff00"
+                      fill="#00ffcc"
                       shape="circle"
+                      style={{ filter: "drop-shadow(0 0 8px #00ffcc)" }}
                     />
                   </ScatterChart>
                 </ResponsiveContainer>
