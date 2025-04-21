@@ -44,6 +44,13 @@ export default function Home() {
     setLoading(false);
   };
 
+  // Helper to get quadrant label
+  function getQuadrantLabel(x: number, y: number) {
+    let xLabel = x < 0 ? "paranoid" : "oversharing";
+    let yLabel = y < 0 ? "skeptical" : "gullible";
+    return `${yLabel} ${xLabel} retard`;
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#111] font-mono">
       {/* Site Title */}
@@ -169,6 +176,20 @@ export default function Home() {
                     />
                   </ScatterChart>
                 </ResponsiveContainer>
+                {/* Final result label */}
+                <div className="mt-8 text-left">
+                  <span className="text-lg font-bold text-green-400">
+                    Final result:{" "}
+                    <span
+                      className="text-green-300 font-bold text-xl"
+                      style={{
+                        textShadow: "0 0 1px #000, 0 0 2px #000"
+                      }}
+                    >
+                      {getQuadrantLabel(x, y)}
+                    </span>
+                  </span>
+                </div>
               </div>
             )}
           </div>

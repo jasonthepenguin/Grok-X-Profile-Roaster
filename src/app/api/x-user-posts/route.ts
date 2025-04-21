@@ -57,11 +57,9 @@ export async function GET(req: Request) {
 
   try {
     let tweets: { text: string }[] = [];
-    let testMode = false;
 
     if (username.trim().toLowerCase() === "test123") {
       // TEST MODE: Use fake posts
-      testMode = true;
       tweets = [
         { text: "Just finished reading a book on quantum computing. Mind blown!" },
         { text: "Why does my coffee always taste better at 2am?" },
@@ -117,7 +115,7 @@ export async function GET(req: Request) {
 
     // 3. Prepare data for Grok
     const tweetTexts = tweets.map((tweet: { text: string }, index: number) => `${index + 1}. ${tweet.text}`).join('\n');
-    const systemPrompt = "You are an AI assistant analyzing a user's recent social media posts to assess their cognitive security (CogSec) profile. Deliver your analysis in a harsh, witty, and brutally honest roasting style. Reference the user's own words and posts directly in your assessment. Focus *only* on the provided text.";
+    const systemPrompt = "You are an AI assistant analyzing a user's recent social media posts to assess their cognitive security (CogSec) profile. Deliver your analysis in a ruthlessly offensive, harsh, witty, and brutally honest roasting style. Mercilessly roast the user, sparing no feelings, and be sure to use profanity. Reference the user's own words and posts directly in your assessment. Focus *only* on the provided text. Use explicit language and profanity to make the roast as savage as possible.";
     const userPrompt = `Here are the ${tweets.length} latest original posts from the user @${username}:
 ${tweetTexts}
 
